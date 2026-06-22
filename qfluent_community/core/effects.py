@@ -99,19 +99,19 @@ class WindowEffect:
             pass
 
     def set_mica(self, enabled: bool = True, dark: bool = True):
-        self._dwm_set(DwmWindowAttribute.DWMWA_MICA_EFFECT, 1 if enabled else 0)
+        self._dwm_set(DwmWindowAttribute.DWMWA_SYSTEMBACKDROP_TYPE,
+                       SystemBackdropType.DWMSBT_MAINWINDOW if enabled else SystemBackdropType.DWMSBT_AUTO)
         self.set_dark_mode(dark)
 
     def set_mica_alt(self, enabled: bool = True, dark: bool = True):
         self._dwm_set(DwmWindowAttribute.DWMWA_SYSTEMBACKDROP_TYPE,
-                       SystemBackdropType.DWMSBT_MAINWINDOW if enabled else SystemBackdropType.DWMSBT_AUTO)
+                       SystemBackdropType.DWMSBT_TABBEDWINDOW if enabled else SystemBackdropType.DWMSBT_AUTO)
         self.set_dark_mode(dark)
 
     def set_acrylic(self, enabled: bool = True):
         if not self.hwnd:
             return
         try:
-            accent = (AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND << 16) | (0x003366 << 0)
             data = (ctypes.c_int * 4)(AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND, 1, 0x003366, 1)
             comp_data = (ctypes.c_int * 8)()
             comp_data[0] = WindowCompositionAttribute.WCA_ACCENT_POLICY
@@ -145,6 +145,44 @@ class WindowEffect:
 
     def set_rounded_corners(self, corner: DwmWindowCorner = DwmWindowCorner.DWMWCP_ROUND):
         self._dwm_set(DwmWindowAttribute.DWMWA_WINDOW_CORNER_PREFERENCE, corner)
+
+    def set_border_color(self, color: int = 0x00000000):
+        """Set DWM window contour/ stroke color. ABGR format, 0 = transparent."""
+        hwnd = self.hwnd
+        if not hwnd:
+            return
+        try:
+            self._dwm.DwmSetWindowAttribute(
+                ctypes.c_int(hwnd),
+                ctypes.c_int(DwmWindowAttribute.DWMWA_BORDER_COLOR),
+                ctypes.byref(ctypes.c_uint(color)),
+                ctypes.c_int(4)
+            )
+        except Exception:
+            pass
+
+    def set_window_backdrop(self, backdrop_type: int = 0):
+        """Set the system backdrop type directly."""
+        self._dwm_set(DwmWindowAttribute.DWMWA_SYSTEMBACKDROP_TYPE, backdrop_type)
+
+    def set_visible_frame_thickness(self, thickness: int = 1):
+        """Control the visible frame border thickness."""
+        self._dwm_set(DwmWindowAttribute.DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, thickness)
+
+    def set_caption_color(self, color: int = 0x00000000):
+        """Set caption bar background color. ABGR format."""
+        hwnd = self.hwnd
+        if not hwnd:
+            return
+        try:
+            self._dwm.DwmSetWindowAttribute(
+                ctypes.c_int(hwnd),
+                ctypes.c_int(DwmWindowAttribute.DWMWA_CAPTION_COLOR),
+                ctypes.byref(ctypes.c_uint(color)),
+                ctypes.c_int(4)
+            )
+        except Exception:
+            pass
 
     def remove_shadow(self):
         if not self.hwnd:
@@ -264,6 +302,15 @@ class MicaController:
         else:
             self._effect.set_mica(True, dark)
 
+    def apply_mica_with_contour(self, hwnd: int, dark: bool = True, alt: bool = False):
+        """Apply Mica + proper Win11 window contour (1px stroke)."""
+        self._effect.set_window(hwnd)
+        self._effect.set_mica(True, dark) if not alt else self._effect.set_mica_alt(True, dark)
+        self._effect.set_rounded_corners()
+        self._effect.set_visible_frame_thickness(1)
+        border_color = 0x00FFFFFF if dark else 0x00D1D1D1
+        self._effect.set_border_color(border_color)
+
     def apply_acrylic(self, hwnd: int):
         self._effect.set_window(hwnd)
         self._effect.set_acrylic(True)
@@ -275,3 +322,9 @@ class MicaController:
     def apply_rounded_corners(self, hwnd: int):
         self._effect.set_window(hwnd)
         self._effect.set_rounded_corners()
+
+    def apply_backdrop(self, hwnd: int, backdrop: int, dark: bool = True):
+        """Direct backdrop type control."""
+        self._effect.set_window(hwnd)
+        self._effect.set_window_backdrop(backdrop)
+        self._effect.set_dark_mode(dark)

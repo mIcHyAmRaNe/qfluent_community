@@ -57,8 +57,12 @@ class FluentWindow(QMainWindow):
     def _setup_window_effects(self):
         hwnd = int(self.winId())
         self._window_effect.set_window(hwnd)
-        self._window_effect.set_dark_mode(self._theme.theme == "dark")
+        is_dark = self._theme.theme == "dark"
+        self._window_effect.set_dark_mode(is_dark)
         self._window_effect.set_rounded_corners()
+        self._window_effect.set_visible_frame_thickness(1)
+        border_color = 0x00D1D1D1 if not is_dark else 0x00404040
+        self._window_effect.set_border_color(border_color)
 
     def set_title(self, title: str):
         self._title_bar.set_title(title)
@@ -98,6 +102,12 @@ class FluentWindow(QMainWindow):
         hwnd = int(self.winId())
         self._window_effect.set_rounded_corners()
 
+    def apply_mica_backdrop(self, alt: bool = False):
+        """Apply Win11 Mica backdrop with contour and dark mode."""
+        hwnd = int(self.winId())
+        is_dark = self._theme.theme == "dark"
+        self._mica.apply_mica_with_contour(hwnd, is_dark, alt)
+
     def central_widget(self) -> QWidget:
         return self._content_area
 
@@ -111,14 +121,20 @@ class FluentWindow(QMainWindow):
         self._style_engine.apply_palette(self, self._theme.theme)
         self._style_engine.apply(self, self._style_engine.qss("QMainWindow"))
         self._title_bar._on_theme_changed()
+        self._apply_window_effects()
 
     def _apply_window_effects(self):
         try:
             hwnd = int(self.winId())
             if hwnd:
                 self._window_effect.set_window(hwnd)
-                self._window_effect.set_dark_mode(self._theme.theme == "dark")
+                is_dark = self._theme.theme == "dark"
+                self._window_effect.set_dark_mode(is_dark)
                 self._window_effect.set_rounded_corners()
+                self._window_effect.set_visible_frame_thickness(1)
+                border_color = 0x00D1D1D1 if not is_dark else 0x00404040
+                self._window_effect.set_border_color(border_color)
+                self._mica.apply(hwnd, is_dark, False)
         except (OSError, ValueError, AttributeError):
             pass
 

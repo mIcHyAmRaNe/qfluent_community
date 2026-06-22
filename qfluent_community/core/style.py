@@ -27,17 +27,14 @@ class StyleEngine(QObject):
             "border-color": "border",
             "font-family": "font_family",
             "font-size": "font_size_body",
-            "border-radius": "radius_medium",
+            "border-radius": "radius_control",
         }
 
         for qss_prop, token_key in vars_map.items():
             value = self._theme.token(token_key)
             if value:
                 if token_key.startswith("radius") or token_key.startswith("font_size"):
-                    if token_key.startswith("font_size"):
-                        lines.append(f"    {qss_prop}: {value}px;")
-                    else:
-                        lines.append(f"    {qss_prop}: {value}px;")
+                    lines.append(f"    {qss_prop}: {value}px;")
                 else:
                     lines.append(f"    {qss_prop}: {value};")
 
@@ -53,6 +50,26 @@ class StyleEngine(QObject):
 
     def apply_theme(self, widget: QWidget):
         widget.setStyleSheet(self.qss())
+
+    def qss_win31(self, selector: str) -> str:
+        """Win11 container background using layer fill."""
+        return f"""
+{selector} {{
+    background-color: {self._theme.token("layer_fill_default")};
+    border-radius: {self._theme.radius("control")}px;
+}}
+"""
+
+    def qss_card(self, selector: str) -> str:
+        """Win11 card surface with elevation."""
+        tm = self._theme
+        return f"""
+{selector} {{
+    background-color: {tm.token("surface_raised")};
+    border: {tm.stroke()}px solid {tm.token("border")};
+    border-radius: {tm.radius("control")}px;
+}}
+"""
 
     @staticmethod
     def hex_to_qcolor(hex_color: str) -> QColor:
@@ -98,7 +115,7 @@ class QssBuilder:
                bg_color: str = None, text_color: str = None,
                border_color: str = None) -> str:
         tm = self._theme
-        radius = radius or tm.token("radius_medium")
+        radius = radius or tm.radius("control")
 
         if bg_color:
             bg = bg_color
@@ -130,10 +147,8 @@ class QssBuilder:
             pressed_bg = tm.token("fill_tertiary")
 
         if not text_color:
-            if appearance == "accent" or appearance == "danger" or appearance == "success":
+            if appearance in ("accent", "danger", "success"):
                 text_color = "#FFFFFF"
-            elif appearance == "transparent":
-                text_color = tm.token("text_primary")
             else:
                 text_color = tm.token("text_primary")
 
@@ -146,8 +161,8 @@ QPushButton {{
     color: {text_color};
     border: 1px solid {border_color};
     border-radius: {radius}px;
-    padding: 5px 16px;
-    font-size: {tm.token("font_size_body")}px;
+    padding: 5px {tm.spacing("md")}px;
+    font-size: {tm.font_size("body")}px;
     font-family: {tm.token("font_family")};
 }}
 QPushButton:hover {{
@@ -168,18 +183,19 @@ QPushButton:disabled {{
         bg = tm.token("fill_default")
         text = tm.token("text_primary")
         border = tm.token("border")
+        radius = tm.radius("control")
 
         return f"""
 QCheckBox {{
     color: {text};
-    font-size: {tm.token("font_size_body")}px;
+    font-size: {tm.font_size("body")}px;
     font-family: {tm.token("font_family")};
-    spacing: 8px;
+    spacing: {tm.spacing("sm")}px;
 }}
 QCheckBox::indicator {{
     width: 20px;
     height: 20px;
-    border-radius: 4px;
+    border-radius: {radius}px;
     border: 1px solid {border};
     background-color: {bg};
 }}
@@ -201,9 +217,9 @@ QCheckBox::indicator:hover {{
         return f"""
 QRadioButton {{
     color: {text};
-    font-size: {tm.token("font_size_body")}px;
+    font-size: {tm.font_size("body")}px;
     font-family: {tm.token("font_family")};
-    spacing: 8px;
+    spacing: {tm.spacing("sm")}px;
 }}
 QRadioButton::indicator {{
     width: 20px;
@@ -220,7 +236,7 @@ QRadioButton::indicator:checked {{
 
     def combobox(self, radius: int = None, accent_color: str = None) -> str:
         tm = self._theme
-        radius = radius or tm.token("radius_medium")
+        radius = radius or tm.radius("control")
         accent = accent_color or tm.accent_color
         bg = tm.token("fill_default")
         text = tm.token("text_primary")
@@ -231,8 +247,8 @@ QComboBox {{
     color: {text};
     border: 1px solid {tm.token("border")};
     border-radius: {radius}px;
-    padding: 5px 12px;
-    font-size: {tm.token("font_size_body")}px;
+    padding: {tm.spacing("xs")}px {tm.spacing("md")}px;
+    font-size: {tm.font_size("body")}px;
     font-family: {tm.token("font_family")};
 }}
 QComboBox:hover {{
@@ -245,8 +261,9 @@ QComboBox::drop-down {{
 QComboBox QAbstractItemView {{
     background-color: {tm.token("surface_raised")};
     color: {text};
-    border: 1px solid {tm.token("border")};
-    border-radius: {radius}px;
+    border: {tm.stroke()}px solid {tm.token("border")};
+    border-radius: {tm.radius("overlay")}px;
+    padding: {tm.spacing("xs")}px;
     selection-background-color: {accent};
     selection-color: white;
     outline: none;
@@ -266,7 +283,7 @@ QSlider {{
 QSlider::groove:horizontal {{
     height: 4px;
     background-color: {bg};
-    border-radius: 2px;
+    border-radius: {tm.radius("bar")}px;
 }}
 QSlider::handle:horizontal {{
     width: 20px;
@@ -277,7 +294,7 @@ QSlider::handle:horizontal {{
 }}
 QSlider::sub-page:horizontal {{
     background-color: {accent};
-    border-radius: 2px;
+    border-radius: {tm.radius("bar")}px;
 }}
 QSlider::handle:hover {{
     background-color: {tm.token("accent_light")};
@@ -285,7 +302,7 @@ QSlider::handle:hover {{
 QSlider::groove:vertical {{
     width: 4px;
     background-color: {bg};
-    border-radius: 2px;
+    border-radius: {tm.radius("bar")}px;
 }}
 QSlider::handle:vertical {{
     width: 20px;
@@ -296,7 +313,7 @@ QSlider::handle:vertical {{
 }}
 QSlider::sub-page:vertical {{
     background-color: {accent};
-    border-radius: 2px;
+    border-radius: {tm.radius("bar")}px;
 }}
 """
 
@@ -324,6 +341,7 @@ QMainWindow::separator {{
         bg = tm.token("bg_primary")
         text = tm.token("text_primary")
         border = tm.token("border")
+        layer = tm.token("layer_fill_default")
 
         return f"""
 QMainWindow {{
@@ -331,14 +349,19 @@ QMainWindow {{
     color: {text};
 }}
 #titleBar {{
-    background-color: {bg};
-    border-bottom: 1px solid {border};
+    background-color: transparent;
     min-height: 32px;
 }}
 #titleLabel {{
     color: {text};
-    font-size: {tm.token("font_size_body")}px;
+    font-size: {tm.font_size("body")}px;
     font-family: {tm.token("font_family")};
+    font-weight: {tm._tokens.font_weight_semibold};
+}}
+#contentArea {{
+    background-color: {layer};
+    border-radius: {tm.radius("overlay")}px;
+    margin: 0px;
 }}
 """
 
@@ -348,10 +371,10 @@ QMainWindow {{
 QToolTip {{
     background-color: {tm.token("surface_raised")};
     color: {tm.token("text_primary")};
-    border: 1px solid {tm.token("border")};
-    border-radius: {tm.token("radius_medium")}px;
-    padding: 4px 8px;
-    font-size: {tm.token("font_size_caption")}px;
+    border: {tm.stroke()}px solid {tm.token("border")};
+    border-radius: {tm.radius("control")}px;
+    padding: {tm.spacing("xs")}px {tm.spacing("sm")}px;
+    font-size: {tm.font_size("caption")}px;
     font-family: {tm.token("font_family")};
 }}
 """

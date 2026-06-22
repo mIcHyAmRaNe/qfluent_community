@@ -9,10 +9,12 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 @dataclass
 class ThemeTokens:
+    # ── Accent ──────────────────────────────────────────────────────────
     accent: str = "#0078D4"
     accent_light: str = "#60CDFF"
     accent_dark: str = "#005A9E"
 
+    # ── Theme surfaces (dark) ───────────────────────────────────────────
     dark_bg_primary: str = "#202020"
     dark_bg_secondary: str = "#2B2B2B"
     dark_bg_tertiary: str = "#363636"
@@ -32,6 +34,13 @@ class ThemeTokens:
     dark_acrylic_tint: str = "#2C2C2C"
     dark_acrylic_luminosity: str = "#1A1A2E"
 
+    # Win11 layer fills (placed over Mica to create the content layer)
+    dark_layer_fill_default: str = "#2C2C2C"
+    dark_layer_fill_alt: str = "#333333"
+    dark_solid_bg_fill_base: str = "#2C2C2C"
+    dark_solid_bg_fill_base_alt: str = "#333333"
+
+    # ── Theme surfaces (light) ──────────────────────────────────────────
     light_bg_primary: str = "#FFFFFF"
     light_bg_secondary: str = "#F9F9F9"
     light_bg_tertiary: str = "#EFEFEF"
@@ -51,29 +60,72 @@ class ThemeTokens:
     light_acrylic_tint: str = "#FCFCFC"
     light_acrylic_luminosity: str = "#EFEFEF"
 
-    radius_small: int = 4
-    radius_medium: int = 7
-    radius_large: int = 12
-    radius_xl: int = 16
+    # Win11 layer fills (light)
+    light_layer_fill_default: str = "#F3F3F3"
+    light_layer_fill_alt: str = "#E8E8E8"
+    light_solid_bg_fill_base: str = "#F3F3F3"
+    light_solid_bg_fill_base_alt: str = "#E8E8E8"
+
+    # ── Corner radius (Win11: 4px controls, 8px overlays) ──────────────
+    radius_control: int = 4
+    radius_overlay: int = 8
+    radius_bar: int = 4
+    radius_none: int = 0
     radius_full: int = 999
 
+    # ── Elevation (shadow + contour) ────────────────────────────────────
+    # Each value corresponds to the DWM elevation value used for shadows.
+    # Stroke/contour is 1px for all elevated surfaces.
+    elevation_window: int = 128
+    elevation_dialog: int = 128
+    elevation_flyout: int = 32
+    elevation_tooltip: int = 16
+    elevation_card: int = 8
+    elevation_control: int = 2
+    elevation_layer: int = 1
+    stroke_width: int = 1
+
+    # ── Typography (Segoe UI Variable, Win11 type ramp) ─────────────────
     font_family: str = "Segoe UI Variable,Segoe UI"
     font_size_caption: int = 12
     font_size_body: int = 14
     font_size_body_strong: int = 14
-    font_size_subtitle: int = 16
-    font_size_title: int = 20
-    font_size_title_large: int = 28
-    font_size_display: int = 40
+    font_size_body_large: int = 18
+    font_size_body_large_strong: int = 18
+    font_size_subtitle: int = 20
+    font_size_title: int = 28
+    font_size_title_large: int = 40
+    font_size_display: int = 68
+    font_weight_semibold: int = 600
+    font_weight_regular: int = 400
 
-    shadow_opacity: float = 0.15
-    shadow_blur_radius: int = 32
-    shadow_offset_y: int = 8
-    shadow_offset_x: int = 0
+    # ── Spacing (multiples of 4epx) ─────────────────────────────────────
+    spacing_xs: int = 4
+    spacing_sm: int = 8
+    spacing_md: int = 12
+    spacing_lg: int = 16
+    spacing_xl: int = 24
+    spacing_xxl: int = 32
+    spacing_xxxl: int = 48
+    spacing_xxxxl: int = 56
 
+    # ── Motion timing (ms) ──────────────────────────────────────────────
+    animation_duration_faster: int = 83
     animation_duration_fast: int = 167
-    animation_duration_medium: int = 267
-    animation_duration_slow: int = 367
+    animation_duration_normal: int = 250
+    animation_duration_slow: int = 333
+
+    # ── Easing curves (cubic-bezier) ────────────────────────────────────
+    easing_direct_entrance: str = "0,0,0,1"
+    easing_existing_elements: str = "0.55,0.55,0,1"
+    easing_direct_exit: str = "0,0,0,1"
+    easing_gentle_exit: str = "1,0,1,1"
+    easing_linear: str = "0,0,1,1"
+
+    # ── Shadow presets ──────────────────────────────────────────────────
+    # Base opacity/blur for elevation, scaled by elevation value.
+    shadow_opacity_base: float = 0.10
+    shadow_blur_scale: float = 1.5
 
     def get(self, key: str, theme: str = "dark"):
         prefix = f"{theme}_"
@@ -178,11 +230,29 @@ class ThemeManager(QObject):
     def color(self, name: str) -> str:
         return self.token(name)
 
-    def radius(self, size: str = "medium") -> int:
-        return self._tokens.get(f"radius_{size}", self._theme)
+    def radius(self, kind: str = "control") -> int:
+        return self._tokens.get(f"radius_{kind}", self._theme)
 
     def font_size(self, size: str = "body") -> int:
         return self._tokens.get(f"font_size_{size}", self._theme)
 
-    def animation_duration(self, speed: str = "medium") -> int:
+    def animation_duration(self, speed: str = "normal") -> int:
         return self._tokens.get(f"animation_duration_{speed}", self._theme)
+
+    def elevation(self, surface: str = "control") -> int:
+        return self._tokens.get(f"elevation_{surface}", self._theme)
+
+    def spacing(self, size: str = "sm") -> int:
+        return self._tokens.get(f"spacing_{size}", self._theme)
+
+    def stroke(self) -> int:
+        return self._tokens.stroke_width
+
+    def shadow_for_elevation(self, elev: int) -> tuple:
+        base_opacity = self._tokens.shadow_opacity_base
+        blur = max(4, int(elev * self._tokens.shadow_blur_scale))
+        offset_y = max(1, elev // 16)
+        return (base_opacity, blur, offset_y)
+
+    def easing(self, name: str = "direct_entrance") -> str:
+        return self._tokens.get(f"easing_{name}", self._theme)

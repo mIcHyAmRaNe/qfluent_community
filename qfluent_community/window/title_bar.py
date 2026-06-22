@@ -206,16 +206,35 @@ class FluentTitleBar(QWidget):
 
     def _apply_label_color(self):
         color = self._theme.token("text_primary")
-        self._title_label.setStyleSheet(f"color: {color}; font-size: 12px;")
+        weight = self._theme._tokens.font_weight_semibold
+        size = self._theme.font_size("body")
+        self._title_label.setStyleSheet(
+            f"color: {color}; font-size: {size}px; font-weight: {weight};"
+        )
 
     def _on_theme_changed(self):
         self._apply_label_color()
         self.update()
 
+    def _window_active_changed(self, active: bool):
+        self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
+        is_active = self.window().isActiveWindow() if self.window() else True
+        alpha = 255 if is_active else 160
+
         if self._theme.theme == "dark":
-            painter.fillRect(self.rect(), QColor("#202020"))
+            c = QColor("#202020")
         else:
-            painter.fillRect(self.rect(), QColor("#F3F3F3"))
+            c = QColor("#F3F3F3")
+        c.setAlpha(alpha)
+        painter.fillRect(self.rect(), c)
         painter.end()
+
+    def changeEvent(self, event):
+        if event.type() == event.Type.ActivationChange:
+            self._window_active_changed(
+                self.window().isActiveWindow() if self.window() else True
+            )
+        super().changeEvent(event)
