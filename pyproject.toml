@@ -1,0 +1,27 @@
+[project]
+name = "qfluent-community"
+version = "0.1.0"
+description = "A modern Fluent Design UI framework for PyQt6 — inspired by WinUI 3 / Windows 11"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pyqt6>=6.8.0",
+]
+keywords = ["pyqt6", "fluent-design", "windows-11", "ui-framework"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+[project.urls]
+Homepage = "https://github.com/mIcHyAmRaNe/qfluent_community"
+Source = "https://github.com/mIcHyAmRaNe/qfluent_community"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["qfluent_community*"]
